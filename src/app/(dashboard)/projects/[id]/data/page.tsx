@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -16,6 +16,11 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
   FormLabel,
   Grid,
@@ -77,12 +82,41 @@ export default function DataPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
   const [previewFile, setPreviewFile] = useState<{ id: string; name: string } | null>(null);
   const handleOpenPreview = (fileId: string, fileName: string) => {
     setPreviewFile({ id: fileId, name: fileName });
   };
   const handleClosePreview = () => {
     setPreviewFile(null);
+  };
+
+  const [deleteFile, setDeleteFile] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(false);
+  const handleOpenDeleteConfirm = (fileId: string, fileName: string) => {
+    setDeleteFile({ id: fileId, name: fileName });
+  };
+  const handleCloseDeleteConfirm = () => {
+    if (deletingRef.current) return;
+    setDeleteFile(null);
+  };
+  const handleConfirmDelete = async () => {
+    if (!deleteFile || deletingRef.current) return;
+    deletingRef.current = true;
+    setDeleting(true);
+    try {
+      await apiClient.delete(`/api/projects/${projectId}/data/${deleteFile.id}`);
+      setSuccessMsg("File deleted successfully.");
+      fetchUploadedFiles();
+      setDeleteFile(null);
+    } catch (err: any) {
+      setError(err.message || "Delete failed");
+    } finally {
+      deletingRef.current = false;
+      setDeleting(false);
+    }
   };
 
   const fetchUploadedFiles = useCallback(async () => {
@@ -117,34 +151,47 @@ export default function DataPage() {
   }, [fetchUploadedFiles, fetchTemplates]);
 
   const onDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      if (acceptedFiles.length === 0 || !projectId) return;
-      const file = acceptedFiles[0];
-
-      setUploading(true);
+    (acceptedFiles: File[]) => {
+      if (acceptedFiles.length === 0) return;
       setError(null);
       setSuccessMsg(null);
-
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("fileType", fileType);
-        if (year) {
-          formData.append("year", year);
-        }
-
-        await apiClient.upload(`/api/projects/${projectId}/data`, formData);
-
-        setSuccessMsg(`File "${file.name}" uploaded successfully!`);
-        fetchUploadedFiles();
-      } catch (err: any) {
-        setError(err.message || "Upload failed");
-      } finally {
-        setUploading(false);
-      }
+      setPendingFile(acceptedFiles[0]);
     },
-    [projectId, fileType, year, fetchUploadedFiles],
+    [],
   );
+
+  const handleRemovePendingFile = () => {
+    setPendingFile(null);
+  };
+
+  const uploadingRef = useRef(false);
+  const handleUploadPendingFile = async () => {
+    if (!pendingFile || !projectId || uploadingRef.current) return;
+    uploadingRef.current = true;
+    setUploading(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", pendingFile);
+      formData.append("fileType", fileType);
+      if (year) {
+        formData.append("year", year);
+      }
+
+      await apiClient.upload(`/api/projects/${projectId}/data`, formData);
+
+      setSuccessMsg(`File "${pendingFile.name}" uploaded successfully!`);
+      setPendingFile(null);
+      fetchUploadedFiles();
+    } catch (err: any) {
+      setError(err.message || "Upload failed");
+    } finally {
+      uploadingRef.current = false;
+      setUploading(false);
+    }
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -188,16 +235,6 @@ export default function DataPage() {
       document.body.removeChild(a);
     } catch (err: any) {
       setError(err.message || "Download failed");
-    }
-  };
-
-  const handleDeleteUploadedFile = async (fileId: string) => {
-    try {
-      await apiClient.delete(`/api/projects/${projectId}/data/${fileId}`);
-      setSuccessMsg("File deleted successfully.");
-      fetchUploadedFiles();
-    } catch (err: any) {
-      setError(err.message || "Delete failed");
     }
   };
 
@@ -275,36 +312,81 @@ export default function DataPage() {
               </FormControl>
             </Box>
 
-            <Box
-              {...getRootProps()}
-              className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-300 ${
-                isDragActive
-                  ? "border-primary bg-primary/5 scale-[1.01]"
-                  : "border-grey-100 hover:border-primary hover:bg-grey-25"
-              }`}
-            >
-              <input {...getInputProps()} />
-              {uploading ? (
-                <Box className="flex flex-col items-center gap-2 animate-in fade-in duration-300">
-                  <CircularProgress size={32} />
-                  <Typography variant="body1">Uploading document...</Typography>
+            {(!pendingFile || uploading) && (
+              <Box
+                {...getRootProps()}
+                className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-300 ${
+                  isDragActive
+                    ? "border-primary bg-primary/5 scale-[1.01]"
+                    : "border-grey-100 hover:border-primary hover:bg-grey-25"
+                }`}
+              >
+                <input {...getInputProps()} />
+                {uploading ? (
+                  <Box className="flex flex-col items-center gap-2 animate-in fade-in duration-300">
+                    <CircularProgress size={32} />
+                    <Typography variant="body1">Uploading document...</Typography>
+                  </Box>
+                ) : (
+                  <>
+                    <CloudUploadIcon
+                      color="action"
+                      sx={{ fontSize: 36 }}
+                      className={`transition-transform duration-300 ${isDragActive ? "scale-110" : ""}`}
+                    />
+                    <Typography variant="body1" className={isDragActive ? "text-primary" : "text-text-secondary"}>
+                      {isDragActive ? "Drop the file here" : "Drag & drop a CSV, Excel, PDF, or Word file, or click to browse"}
+                    </Typography>
+                    <Typography variant="caption" className="text-text-secondary">
+                      Supported formats: .csv, .xlsx, .pdf, .doc, .docx
+                    </Typography>
+                  </>
+                )}
+              </Box>
+            )}
+
+            {pendingFile && !uploading && (
+              <Box className="bg-grey-25 flex flex-col gap-3 rounded-2xl p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <Box className="flex items-center justify-between gap-2">
+                  <Box className="flex flex-col gap-0.5 min-w-0">
+                    <Typography variant="body1" className="text-text-primary font-semibold truncate">
+                      {pendingFile.name}
+                    </Typography>
+                    <Typography variant="body2" className="text-text-secondary">
+                      {fileType} {year ? `• ${year}` : ""} • {formatFileSize(pendingFile.size)}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={handleRemovePendingFile}
+                    title="Remove file"
+                    className="transition-transform duration-200 hover:scale-110 flex-shrink-0"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 </Box>
-              ) : (
-                <>
-                  <CloudUploadIcon
-                    color="action"
-                    sx={{ fontSize: 36 }}
-                    className={`transition-transform duration-300 ${isDragActive ? "scale-110" : ""}`}
-                  />
-                  <Typography variant="body1" className={isDragActive ? "text-primary" : "text-text-secondary"}>
-                    {isDragActive ? "Drop the file here" : "Drag & drop a CSV, Excel, PDF, or Word file, or click to browse"}
-                  </Typography>
-                  <Typography variant="caption" className="text-text-secondary">
-                    Supported formats: .csv, .xlsx, .pdf, .doc, .docx
-                  </Typography>
-                </>
-              )}
-            </Box>
+                <Box className="flex items-center gap-2">
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<CloudUploadIcon />}
+                    onClick={handleUploadPendingFile}
+                    className="transition-transform duration-200 hover:scale-105"
+                  >
+                    Upload
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    onClick={handleRemovePendingFile}
+                    className="transition-transform duration-200 hover:scale-105"
+                  >
+                    Remove
+                  </Button>
+                </Box>
+              </Box>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -373,7 +455,7 @@ export default function DataPage() {
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => handleDeleteUploadedFile(file.id)}
+                          onClick={() => handleOpenDeleteConfirm(file.id, file.name)}
                           title="Delete file"
                           className="transition-transform duration-200 hover:scale-110"
                         >
@@ -442,6 +524,38 @@ export default function DataPage() {
         projectId={projectId}
         onClose={handleClosePreview}
       />
+
+      <Dialog
+        open={Boolean(deleteFile)}
+        onClose={handleCloseDeleteConfirm}
+        maxWidth="xs"
+        fullWidth
+        slotProps={{
+          paper: { className: "rounded-3xl" },
+        }}
+      >
+        <DialogTitle>Delete file?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete <strong>{deleteFile?.name}</strong>? This action
+            cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions className="px-4 pb-4">
+          <Button onClick={handleCloseDeleteConfirm} disabled={deleting} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteIcon />}
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

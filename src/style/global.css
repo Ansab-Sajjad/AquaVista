@@ -24,6 +24,7 @@
 @import "react-big-calendar/lib/css/react-big-calendar.css";
 @import "swiper/css" layer(components);
 @import "react-quill-new/dist/quill.snow.css" layer(components);
+@import "katex/dist/katex.min.css" layer(components);
 
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
@@ -102,6 +103,7 @@
 @import "./plugins/video-player-vidstack.css";
 @import "./plugins/text-editor-quill.css";
 @import "./plugins/ds-markdown.css";
+@import "./plugins/ava-markdown.css";
 @import "./plugins/react-big-calendar.css";
 @import "./plugins/emoji-picker.css";
 

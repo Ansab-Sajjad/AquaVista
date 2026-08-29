@@ -1,0 +1,115 @@
+/* --------------------------- */
+/* AVA Markdown (chat bubbles) */
+/* --------------------------- */
+
+.ava-markdown {
+  @apply font-body text-sm leading-relaxed text-inherit;
+
+  /* Tighten the first/last children so content sits flush in the bubble */
+  > *:first-child {
+    @apply mt-0;
+  }
+  > *:last-child {
+    @apply mb-0;
+  }
+
+  p {
+    @apply mb-2 leading-relaxed;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading leading-tight font-bold;
+  }
+
+  h1 {
+    @apply mt-4 mb-2 text-xl;
+  }
+  h2 {
+    @apply mt-4 mb-2 text-lg;
+  }
+  h3 {
+    @apply mt-3 mb-1.5 text-base;
+  }
+  h4 {
+    @apply mt-3 mb-1.5 text-sm;
+  }
+  h5,
+  h6 {
+    @apply mt-2 mb-1 text-sm;
+  }
+
+  strong {
+    @apply font-bold;
+  }
+
+  em {
+    @apply italic;
+  }
+
+  a {
+    @apply text-primary underline underline-offset-2 hover:opacity-80;
+  }
+
+  ul {
+    @apply mb-2 list-disc pl-5;
+
+    li {
+      @apply leading-relaxed;
+    }
+  }
+
+  ol {
+    @apply mb-2 list-decimal pl-5;
+
+    li {
+      @apply leading-relaxed;
+    }
+  }
+
+  /* GFM task lists: hide the default bullet for checkbox items */
+  li:has(> input[type="checkbox"]) {
+    @apply list-none pl-0;
+  }
+
+  code {
+    @apply rounded bg-black/10 px-1 py-0.5 font-mono text-[0.85em];
+  }
+
+  pre {
+    @apply my-2 overflow-x-auto rounded-lg bg-black/80 p-3;
+
+    code {
+      @apply bg-transparent p-0 text-[0.85em] text-white;
+    }
+  }
+
+  blockquote {
+    @apply border-primary/40 text-text-secondary my-2 border-l-4 pl-3 italic;
+  }
+
+  table {
+    @apply my-2 w-full border-collapse text-left text-xs;
+
+    th {
+      @apply border border-black/10 bg-black/5 px-2 py-1 font-semibold;
+    }
+
+    td {
+      @apply border border-black/10 px-2 py-1;
+    }
+  }
+
+  hr {
+    @apply my-3 border-black/10;
+  }
+
+  /* KaTeX block math should scroll on small screens and not overflow bubbles */
+  .katex-display {
+    @apply my-2 overflow-x-auto overflow-y-hidden py-1;
+  }
+}

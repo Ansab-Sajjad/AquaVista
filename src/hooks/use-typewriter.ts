@@ -18,6 +18,7 @@ type QueueItem = { id: string; content: string };
  */
 export function useTypewriter() {
   const [typingIds, setTypingIds] = useState<Set<string>>(new Set());
+  const [queuedIds, setQueuedIds] = useState<Set<string>>(new Set());
   const [displayedLengths, setDisplayedLengths] = useState<Record<string, number>>({});
   const displayedLengthsRef = useRef<Record<string, number>>({});
   const queueRef = useRef<QueueItem[]>([]);
@@ -35,6 +36,11 @@ export function useTypewriter() {
         if (next) {
           currentRef.current = next;
           setTypingIds((prev) => new Set(prev).add(next.id));
+          setQueuedIds((prev) => {
+            const nextSet = new Set(prev);
+            nextSet.delete(next.id);
+            return nextSet;
+          });
           setDisplayedLengths((prev) => ({ ...prev, [next.id]: 0 }));
         }
         return;
@@ -61,7 +67,15 @@ export function useTypewriter() {
   }, []);
 
   const enqueue = useCallback((items: QueueItem[]) => {
-    queueRef.current.push(...items.filter((item) => item.content.length > 0));
+    const valid = items.filter((item) => item.content.length > 0);
+    queueRef.current.push(...valid);
+    if (valid.length > 0) {
+      setQueuedIds((prev) => {
+        const next = new Set(prev);
+        valid.forEach((item) => next.add(item.id));
+        return next;
+      });
+    }
   }, []);
 
   const getDisplayedContent = useCallback(
@@ -75,6 +89,13 @@ export function useTypewriter() {
 
   const isTyping = useCallback((id: string) => typingIds.has(id), [typingIds]);
 
+  /**
+   * True while a message is either waiting in the queue or actively streaming.
+   * Use this to decide whether to render streaming-friendly (plain) content
+   * vs. the final rendered form (e.g. markdown).
+   */
+  const isStreaming = useCallback((id: string) => typingIds.has(id) || queuedIds.has(id), [typingIds, queuedIds]);
+
   /** Total number of characters currently displayed across all streaming messages. */
   const progress = Object.values(displayedLengths).reduce((sum, len) => sum + len, 0);
 
@@ -82,8 +103,9 @@ export function useTypewriter() {
     queueRef.current = [];
     currentRef.current = null;
     setTypingIds(new Set());
+    setQueuedIds(new Set());
     setDisplayedLengths({});
   }, []);
 
-  return { enqueue, getDisplayedContent, isTyping, reset, progress };
+  return { enqueue, getDisplayedContent, isTyping, isStreaming, reset, progress };
 }

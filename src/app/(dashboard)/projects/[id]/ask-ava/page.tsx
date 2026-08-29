@@ -22,6 +22,7 @@ import {
 } from "@mui/material";
 
 import AvaChart from "@/components/ask-ava/ava-chart";
+import AvaMarkdown from "@/components/ask-ava/ava-markdown";
 import AvaTable from "@/components/ask-ava/ava-table";
 import { useAvaUsage } from "@/components/ask-ava/ava-usage-context";
 import type { AvaMessage, AvaUsage, StartupQuestion } from "@/components/ask-ava/types";
@@ -82,7 +83,9 @@ export default function AskAvaPage() {
   const fetchStartupQuestions = useCallback(async () => {
     if (!projectId) return;
     try {
-      const data = await apiClient.get<StartupQuestion[]>(`/api/projects/${encodeURIComponent(projectId)}/ava/startup-questions`);
+      const data = await apiClient.get<StartupQuestion[]>(
+        `/api/projects/${encodeURIComponent(projectId)}/ava/startup-questions`,
+      );
       setStartupQuestions(data);
     } catch {
       // Non-critical; ignore
@@ -187,10 +190,9 @@ export default function AskAvaPage() {
             return;
           }
 
-          selectedChat = await apiClient.post<any>(
-            `/api/projects/${encodeURIComponent(projectId)}/ava/chats`,
-            { title: "Ask AVA conversation" },
-          );
+          selectedChat = await apiClient.post<any>(`/api/projects/${encodeURIComponent(projectId)}/ava/chats`, {
+            title: "Ask AVA conversation",
+          });
         }
 
         if (!selectedChat) {
@@ -314,7 +316,7 @@ export default function AskAvaPage() {
 
   return (
     <Box className="flex w-full flex-col gap-4">
-      <Box className="flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-500">
+      <Box className="animate-in fade-in slide-in-from-top-2 flex items-center justify-between duration-500">
         <Box>
           <Typography variant="h4" component="h2">
             Ask {AquaVista.assistantName}
@@ -327,7 +329,9 @@ export default function AskAvaPage() {
           {isAdminViewingUser && (
             <Button
               startIcon={<ArrowBack />}
-              onClick={() => router.push(requestedUserId ? `/users/${requestedUserId}` : `/projects/${projectId}/users`)}
+              onClick={() =>
+                router.push(requestedUserId ? `/users/${requestedUserId}` : `/projects/${projectId}/users`)
+              }
               variant="outlined"
               className="w-fit transition-transform duration-200 hover:scale-105"
               sx={{
@@ -354,13 +358,13 @@ export default function AskAvaPage() {
       {isMaximized && (
         <Box
           onClick={() => setIsMaximized(false)}
-          className="fixed inset-0 z-[1299] bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
+          className="animate-in fade-in fixed inset-0 z-[1299] bg-black/40 backdrop-blur-sm duration-200"
         />
       )}
 
       <Card
         className={cn(
-          "bg-background-paper shadow-darker-xs relative flex flex-col rounded-3xl transition-all duration-300 hover:shadow-md animate-in fade-in slide-in-from-bottom-3 duration-500 delay-100",
+          "bg-background-paper shadow-darker-xs animate-in fade-in slide-in-from-bottom-3 relative flex flex-col rounded-3xl transition-all delay-100 duration-300 duration-500 hover:shadow-md",
           isMaximized
             ? "fixed inset-3 z-[1300] h-auto w-auto shadow-2xl"
             : isAdminViewingUser
@@ -368,7 +372,7 @@ export default function AskAvaPage() {
               : "h-[calc(100vh-22rem)]",
         )}
       >
-        <Box className="absolute right-3 top-3 z-10 flex items-center gap-1.5">
+        <Box className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
           <IconButton
             size="small"
             onClick={() => setIsMaximized((prev) => !prev)}
@@ -398,13 +402,13 @@ export default function AskAvaPage() {
 
           <Box className="flex-1 space-y-4 overflow-y-auto pr-2">
             {isLoading ? (
-              <Box className="bg-grey-50 text-text-secondary rounded-3xl p-6 text-center animate-in fade-in duration-300">
+              <Box className="bg-grey-50 text-text-secondary animate-in fade-in rounded-3xl p-6 text-center duration-300">
                 <Typography>Loading Ask AVA conversation...</Typography>
               </Box>
             ) : null}
 
             {error ? (
-              <Box className="bg-error/10 text-error rounded-3xl p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <Box className="bg-error/10 text-error animate-in fade-in slide-in-from-top-2 rounded-3xl p-4 duration-300">
                 <Typography>{error}</Typography>
               </Box>
             ) : null}
@@ -412,7 +416,7 @@ export default function AskAvaPage() {
             {/* First-visit empty state: show startup questions (if configured for this
                 project) instead of the generic welcome message. */}
             {showStartupIntro ? (
-              <Box className="flex h-full flex-col items-center justify-center gap-2 px-4 py-10 text-center animate-in fade-in duration-500">
+              <Box className="animate-in fade-in flex h-full flex-col items-center justify-center gap-2 px-4 py-10 text-center duration-500">
                 <Box className="bg-primary/10 text-primary mb-2 flex h-12 w-12 items-center justify-center rounded-full">
                   <AutoAwesome fontSize="medium" />
                 </Box>
@@ -432,7 +436,7 @@ export default function AskAvaPage() {
                       clickable
                       onClick={() => void sendMessage(question.text)}
                       disabled={isThinking || inputDisabled}
-                      className="transition-all duration-200 hover:scale-105 hover:shadow-sm animate-in fade-in zoom-in-95"
+                      className="animate-in fade-in zoom-in-95 transition-all duration-200 hover:scale-105 hover:shadow-sm"
                       style={{ animationDelay: `${200 + index * 50}ms`, animationDuration: "300ms" }}
                     />
                   ))}
@@ -440,95 +444,99 @@ export default function AskAvaPage() {
               </Box>
             ) : (
               messages.map((message, index) => (
-              <Box
-                key={message.id}
-                className={cn(
-                  "flex w-full animate-in fade-in",
-                  message.role === "user" ? "justify-end slide-in-from-right" : "justify-start slide-in-from-left-2"
-                )}
-                style={{ animationDelay: `${index * 50}ms`, animationDuration: "400ms" }}
-              >
                 <Box
+                  key={message.id}
                   className={cn(
-                    "max-w-[80%] rounded-3xl px-5 py-3 transition-all duration-200",
-                    message.role === "user"
-                      ? "bg-primary rounded-br-sm text-white hover:shadow-md"
-                      : "bg-grey-50 text-text-primary rounded-bl-sm hover:bg-grey-100",
+                    "animate-in fade-in flex w-full",
+                    message.role === "user" ? "slide-in-from-right justify-end" : "slide-in-from-left-2 justify-start",
                   )}
+                  style={{ animationDelay: `${index * 50}ms`, animationDuration: "400ms" }}
                 >
-                  {message.role === "assistant" && (
-                    <Box className="mb-2 flex items-center gap-2">
-                      <Typography variant="caption" className="text-primary font-semibold">
-                        {message.title || "AquaVista Assistant"}
-                      </Typography>
-                      {message.id !== "welcome" && !isAdminViewingUser && (
-                        <IconButton
-                          size="small"
-                          className="h-6 w-6 transition-transform duration-200 hover:scale-110"
-                          onClick={() => handlePin(message)}
-                          title={
-                            pinnedMessageIds.has(message.id)
-                              ? "Unpin from Dashboard"
-                              : isAdmin
-                                ? "Pin to Dashboard for all project members"
-                                : "Pin to Dashboard (visible only to you)"
-                          }
+                  <Box
+                    className={cn(
+                      "max-w-[80%] rounded-3xl px-5 py-3 transition-all duration-200",
+                      message.role === "user"
+                        ? "bg-primary rounded-br-sm text-white hover:shadow-md"
+                        : "bg-grey-50 text-text-primary hover:bg-grey-100 rounded-bl-sm",
+                    )}
+                  >
+                    {message.role === "assistant" && (
+                      <Box className="mb-2 flex items-center gap-2">
+                        <Typography variant="caption" className="text-primary font-semibold">
+                          {message.title || "AquaVista Assistant"}
+                        </Typography>
+                        {message.id !== "welcome" && !isAdminViewingUser && (
+                          <IconButton
+                            size="small"
+                            className="h-6 w-6 transition-transform duration-200 hover:scale-110"
+                            onClick={() => handlePin(message)}
+                            title={
+                              pinnedMessageIds.has(message.id)
+                                ? "Unpin from Dashboard"
+                                : isAdmin
+                                  ? "Pin to Dashboard for all project members"
+                                  : "Pin to Dashboard (visible only to you)"
+                            }
+                          >
+                            <PushPin
+                              className={cn(
+                                "transition-colors duration-200",
+                                pinnedMessageIds.has(message.id) ? "text-primary" : "text-text-secondary",
+                              )}
+                              fontSize="small"
+                            />
+                          </IconButton>
+                        )}
+                      </Box>
+                    )}
+                    {message.content ? (
+                      message.role === "assistant" && !typewriter.isStreaming(message.id) ? (
+                        <AvaMarkdown content={message.content} />
+                      ) : (
+                        <Typography
+                          variant="body2"
+                          className={cn(
+                            "leading-relaxed whitespace-pre-wrap",
+                            message.role === "user" ? "text-white" : "text-text-primary",
+                          )}
                         >
-                          <PushPin
-                            className={cn(
-                              "transition-colors duration-200",
-                              pinnedMessageIds.has(message.id) ? "text-primary" : "text-text-secondary"
-                            )}
-                            fontSize="small"
-                          />
-                        </IconButton>
-                      )}
-                    </Box>
-                  )}
-                  {message.content ? (
-                    <Typography
-                      variant="body2"
-                      className={cn(
-                        "leading-relaxed whitespace-pre-wrap",
-                        message.role === "user" ? "text-white" : "text-text-primary",
-                      )}
-                    >
-                      {message.role === "assistant"
-                        ? typewriter.getDisplayedContent(message.id, message.content)
-                        : message.content}
-                      {message.role === "assistant" && typewriter.isTyping(message.id) && (
-                        <span className="av-typing-cursor" aria-hidden="true">
-                          &nbsp;
-                        </span>
-                      )}
-                    </Typography>
-                  ) : null}
+                          {message.role === "assistant"
+                            ? typewriter.getDisplayedContent(message.id, message.content)
+                            : message.content}
+                          {message.role === "assistant" && typewriter.isTyping(message.id) && (
+                            <span className="av-typing-cursor" aria-hidden="true">
+                              &nbsp;
+                            </span>
+                          )}
+                        </Typography>
+                      )
+                    ) : null}
 
-                  {message.role === "assistant" &&
-                  message.type === "table" &&
-                  message.tableData &&
-                  !typewriter.isTyping(message.id) &&
-                  (Array.isArray(message.tableData.columns) || Array.isArray(message.tableData.rows)) ? (
-                    <Box className="mt-2 overflow-hidden rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <AvaTable data={message.tableData} />
-                    </Box>
-                  ) : null}
+                    {message.role === "assistant" &&
+                    message.type === "table" &&
+                    message.tableData &&
+                    !typewriter.isTyping(message.id) &&
+                    (Array.isArray(message.tableData.columns) || Array.isArray(message.tableData.rows)) ? (
+                      <Box className="animate-in fade-in slide-in-from-bottom-2 mt-2 overflow-hidden rounded-xl duration-300">
+                        <AvaTable data={message.tableData} />
+                      </Box>
+                    ) : null}
 
-                  {message.role === "assistant" &&
-                  message.type === "chart" &&
-                  message.chartData &&
-                  !typewriter.isTyping(message.id) ? (
-                    <Box className="mt-2 overflow-hidden rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <AvaChart data={message.chartData} />
-                    </Box>
-                  ) : null}
+                    {message.role === "assistant" &&
+                    message.type === "chart" &&
+                    message.chartData &&
+                    !typewriter.isTyping(message.id) ? (
+                      <Box className="animate-in fade-in slide-in-from-bottom-2 mt-2 overflow-hidden rounded-xl duration-300">
+                        <AvaChart data={message.chartData} />
+                      </Box>
+                    ) : null}
+                  </Box>
                 </Box>
-              </Box>
               ))
             )}
 
             {isThinking && (
-              <Box className="flex w-full justify-start animate-in fade-in slide-in-from-left-2 duration-300">
+              <Box className="animate-in fade-in slide-in-from-left-2 flex w-full justify-start duration-300">
                 <Box className="bg-grey-50 text-text-primary rounded-3xl rounded-bl-sm px-5 py-3">
                   <Typography variant="body2">AVA is thinking...</Typography>
                 </Box>
@@ -541,58 +549,57 @@ export default function AskAvaPage() {
             <Box className="mt-auto flex flex-col gap-1 pt-2">
               <Box className="flex items-center gap-2">
                 <FormControl sx={{ minWidth: { xs: 150, sm: 200 } }} size="small">
-                <Select
-                  value={selectedProvider}
-                  onChange={(event: SelectChangeEvent<"gemini" | "groq" | "ollama">) => {
-                    setSelectedProvider(event.target.value);
-                  }}
-                  className="rounded-2xl"
-                  sx={{
-                    "& .MuiOutlinedInput-notchedOutline": { borderRadius: "1rem" },
-                  }}
+                  <Select
+                    value={selectedProvider}
+                    onChange={(event: SelectChangeEvent<"gemini" | "groq" | "ollama">) => {
+                      setSelectedProvider(event.target.value);
+                    }}
+                    className="rounded-2xl"
+                    sx={{
+                      "& .MuiOutlinedInput-notchedOutline": { borderRadius: "1rem" },
+                    }}
+                  >
+                    <MenuItem value="gemini">⚡ Google Gemini</MenuItem>
+                    <MenuItem value="groq">🚀 Groq - Llama 3.3</MenuItem>
+                    <MenuItem value="ollama">🦙 Ollama / OpenRouter - DeepSeek R1</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  fullWidth
+                  multiline={false}
+                  maxRows={1}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={
+                    usage?.limitReached
+                      ? "Ask AVA usage limit reached for today"
+                      : "Ask AVA about revenue, expenses, customer classes, rates..."
+                  }
+                  slotProps={{ input: { className: "rounded-2xl transition-all duration-200 focus-within:shadow-md" } }}
+                  disabled={inputDisabled}
+                />
+                <Button
+                  variant="contained"
+                  onClick={() => void sendMessage()}
+                  disabled={
+                    !input.trim() ||
+                    isThinking ||
+                    isLoading ||
+                    !chatId ||
+                    isAdminViewingUser ||
+                    Boolean(usage?.limitReached)
+                  }
+                  className="h-14 px-6 transition-transform duration-200 hover:scale-105 disabled:scale-100"
                 >
-                  <MenuItem value="gemini">⚡ Google Gemini</MenuItem>
-                  <MenuItem value="groq">🚀 Groq - Llama 3.3</MenuItem>
-                  <MenuItem value="ollama">🦙 Ollama / OpenRouter - DeepSeek R1</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField
-                fullWidth
-                multiline={false}
-                maxRows={1}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={
-                  usage?.limitReached
-                    ? "Ask AVA usage limit reached for today"
-                    : "Ask AVA about revenue, expenses, customer classes, rates..."
-                }
-                slotProps={{ input: { className: "rounded-2xl transition-all duration-200 focus-within:shadow-md" } }}
-                disabled={inputDisabled}
-              />
-              <Button
-                variant="contained"
-                onClick={() => void sendMessage()}
-                disabled={
-                  !input.trim() ||
-                  isThinking ||
-                  isLoading ||
-                  !chatId ||
-                  isAdminViewingUser ||
-                  Boolean(usage?.limitReached)
-                }
-                className="h-14 px-6 transition-transform duration-200 hover:scale-105 disabled:scale-100"
-              >
-                Send
-              </Button>
-            </Box>
-            <Typography variant="caption" className="text-text-secondary text-center">
-              <strong>Ground rules:</strong>{" "}
-              {AquaVista.assistantName} answers questions based on this project&apos;s{" "}
-              {AquaVista.terminology.baselineData.toLowerCase()}. It avoids speculation, cites source files, and asks
-              for clarification when the data is incomplete.
-            </Typography>
+                  Send
+                </Button>
+              </Box>
+              <Typography variant="caption" className="text-text-secondary text-center">
+                <strong>Ground rules:</strong> {AquaVista.assistantName} answers questions based on this project&apos;s{" "}
+                {AquaVista.terminology.baselineData.toLowerCase()}. It avoids speculation, cites source files, and asks
+                for clarification when the data is incomplete.
+              </Typography>
             </Box>
           ) : null}
         </CardContent>

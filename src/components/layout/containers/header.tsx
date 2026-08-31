@@ -4,7 +4,6 @@ import Notifications from "../notifications/notifications";
 import Search from "../search/search";
 import Shortcuts from "../shortcuts/shortcuts";
 import User from "../user/user";
-import VersionSelect from "../version-select/version-select";
 import Link from "next/link";
 import * as React from "react";
 import { useEffect, useState } from "react";
@@ -79,12 +78,6 @@ export default function Header() {
             <Logo classNameFull="ms-2 hidden md:block" classNameMobile="ms-2 md:hidden" />
           </Link>
 
-          {/* Version select */}
-          <Fade in={!rightButtonsVisibleMobile || !isMobile}>
-            <Box>
-              <VersionSelect className={cn("sm:flex!", rightButtonsVisibleMobile ? "hidden" : "flex")} />
-            </Box>
-          </Fade>
         </Box>
 
         {/* Right buttons */}

@@ -197,7 +197,7 @@ export default function LeftMenu() {
   }, [updateSelectedSecondaryItem]);
 
   return (
-    <nav className="bg-background-paper shadow-darker-xs fixed z-10 mt-16 flex h-[calc(100%-4rem)] flex-row rounded-e-4xl">
+    <nav className="fixed z-10 mt-16 flex h-[calc(100%-4rem)] flex-row">
       <Box
         className={cn(
           "flex h-full shrink-0 grow-0 flex-col items-center overflow-x-hidden py-2.5! transition-all duration-(--layout-duration)",

@@ -2,18 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useParams, useSearchParams } from "next/navigation";
-import { PropsWithChildren, useCallback, useEffect, useState } from "react";
+import { PropsWithChildren, useEffect, useState } from "react";
 
-import { Settings } from "@mui/icons-material";
-import { Box, Button, CircularProgress, LinearProgress, Typography } from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 
-import { AvaUsageProvider, useAvaUsage } from "@/components/ask-ava/ava-usage-context";
-import StartupQuestionsDialog from "@/components/ask-ava/startup-questions-dialog";
-import type { StartupQuestion } from "@/components/ask-ava/types";
+import { AvaUsageProvider } from "@/components/ask-ava/ava-usage-context";
 import NiChartPie from "@/icons/nexture/ni-chart-pie";
 import NiDatabase from "@/icons/nexture/ni-database";
 import NiHome from "@/icons/nexture/ni-home";
 import NiRobot from "@/icons/nexture/ni-robot";
+import NiSettings from "@/icons/nexture/ni-settings";
 import NiUsers from "@/icons/nexture/ni-users";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
@@ -24,6 +22,13 @@ const PROJECT_TABS = [
   { id: "dashboard", label: "Dashboard", icon: NiChartPie, href: (id: string) => `/projects/${id}/dashboard` },
   { id: "data", label: "Data", icon: NiDatabase, href: (id: string) => `/projects/${id}/data` },
   { id: "ask-ava", label: "Ask AVA", icon: NiRobot, href: (id: string) => `/projects/${id}/ask-ava` },
+  {
+    id: "chat-settings",
+    label: "Chat Settings",
+    icon: NiSettings,
+    href: (id: string) => `/projects/${id}/chat-settings`,
+    adminOnly: true,
+  },
   { id: "users", label: "Users", icon: NiUsers, href: (id: string) => `/projects/${id}/users`, adminOnly: true },
 ];
 
@@ -52,18 +57,11 @@ function ProjectLayoutContent({ projectId, children }: PropsWithChildren<{ proje
   const searchParams = useSearchParams();
   const isAdmin = isAdminUser();
   const isAdminViewingUser = Boolean(searchParams.get("userId")) && isAdmin;
-  const { usage } = useAvaUsage();
   const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [startupQuestions, setStartupQuestions] = useState<StartupQuestion[]>([]);
-  const [startupDialogOpen, setStartupDialogOpen] = useState(false);
 
   useEffect(() => {
     const loadProject = async () => {
-      if (!projectId) {
-        setLoading(false);
-        return;
-      }
+      if (!projectId) return;
 
       try {
         const data = await apiClient.get<any>(`/api/projects/${projectId}`);
@@ -80,41 +78,11 @@ function ProjectLayoutContent({ projectId, children }: PropsWithChildren<{ proje
         }
       } catch {
         // Silently fail - project name will just not show
-      } finally {
-        setLoading(false);
       }
     };
 
     void loadProject();
   }, [projectId]);
-
-  const fetchStartupQuestions = useCallback(async () => {
-    if (!projectId) return;
-    try {
-      const data = await apiClient.get<StartupQuestion[]>(`/api/projects/${encodeURIComponent(projectId)}/ava/startup-questions`);
-      setStartupQuestions(data);
-    } catch {
-      // Non-critical; ignore
-    }
-  }, [projectId]);
-
-  const handleSaveStartupQuestions = useCallback(
-    async (questions: StartupQuestion[]) => {
-      if (!projectId) return;
-      const saved = await apiClient.put<StartupQuestion[]>(
-        `/api/projects/${encodeURIComponent(projectId)}/ava/startup-questions`,
-        { questions },
-      );
-      setStartupQuestions(saved);
-    },
-    [projectId],
-  );
-
-  useEffect(() => {
-    if (isAdmin && projectId) {
-      void fetchStartupQuestions();
-    }
-  }, [isAdmin, projectId, fetchStartupQuestions]);
 
   const VISIBLE_TABS = PROJECT_TABS.filter((tab) => !tab.adminOnly || isAdmin);
 
@@ -123,12 +91,10 @@ function ProjectLayoutContent({ projectId, children }: PropsWithChildren<{ proje
       ? "users"
       : PROJECT_TABS.find((tab) => pathname.includes(`/projects/${projectId}/${tab.id}`))?.id || "dashboard";
 
-  const usagePercent = usage ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : 0;
-
   return (
     <Box className="flex w-full flex-col gap-4 sm:flex-row sm:items-stretch">
       {!isAdminViewingUser && (
-        <Box className="bg-background-paper shadow-darker-xs flex w-full shrink-0 flex-col gap-1 rounded-2xl p-4 sm:w-56">
+        <Box className="bg-background-paper shadow-darker-xs flex w-full shrink-0 flex-col gap-1 overflow-y-auto rounded-2xl p-4 transform-gpu will-change-transform sm:sticky sm:top-[5.5rem] sm:h-[calc(100vh-7.5rem)] sm:w-56 sm:self-start md:top-24 md:h-[calc(100vh-8.5rem)]">
           <Typography variant="caption" className="text-primary mb-1 px-2.5 font-semibold uppercase">
             {project?.name || "Project"}
           </Typography>
@@ -156,77 +122,13 @@ function ProjectLayoutContent({ projectId, children }: PropsWithChildren<{ proje
         </Box>
       )}
 
-      <Box className={cn("bg-background-paper shadow-darker-xs w-full min-w-0 flex-1 rounded-2xl p-4 sm:p-6")}>
-        {!isAdminViewingUser && (
-          <Box className="mb-4 flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
-            <Box>
-              <Typography variant="h5" component="h1" className="font-bold">
-                {project?.name ? `${project.name} Workspace` : "Project Workspace"}
-              </Typography>
-              <Typography variant="caption" className="text-text-secondary">
-                {loading ? <CircularProgress size={12} /> : <>ID: {projectId}</>}
-              </Typography>
-            </Box>
-            <Box className="flex flex-col items-stretch gap-2 sm:items-end">
-              {isAdmin && activeTab === "ask-ava" && (
-                <Button
-                  startIcon={<Settings />}
-                  onClick={() => setStartupDialogOpen(true)}
-                  variant="outlined"
-                  color="grey"
-                  size="small"
-                  className="w-fit transition-transform duration-200 hover:scale-105"
-                  sx={{
-                    borderColor: "divider",
-                    color: "text.primary",
-                    textTransform: "none",
-                    fontWeight: 600,
-                    "&:hover": {
-                      borderColor: "primary.main",
-                      color: "primary.main",
-                      backgroundColor: "action.hover",
-                    },
-                  }}
-                >
-                  Startup questions
-                </Button>
-              )}
-              {activeTab === "ask-ava" && usage ? (
-                <Box className="w-full sm:w-48">
-                  <Box className="mb-0.5 flex items-center justify-between">
-                    <Typography variant="caption" className="text-text-secondary font-medium">
-                      Ask AVA usage
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      className={cn("font-semibold", usage.limitReached ? "text-error" : "text-text-secondary")}
-                    >
-                      {usage.used}/{usage.limit}
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={usagePercent}
-                    color={usage.limitReached ? "error" : usagePercent >= 80 ? "warning" : "primary"}
-                    className="rounded-full"
-                    sx={{ height: 6, borderRadius: 999 }}
-                  />
-                </Box>
-              ) : null}
-            </Box>
-          </Box>
+      <Box
+        className={cn(
+          "bg-background-paper outline-grey-50 w-full min-w-0 flex-1 rounded-2xl p-4 shadow-xs outline outline-offset-0 sm:p-6",
         )}
+      >
         {children}
       </Box>
-
-      {isAdmin ? (
-        <StartupQuestionsDialog
-          open={startupDialogOpen}
-          questions={startupQuestions}
-          onClose={() => setStartupDialogOpen(false)}
-          onSave={handleSaveStartupQuestions}
-        />
-      ) : null}
     </Box>
   );
 }

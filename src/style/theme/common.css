@@ -112,7 +112,7 @@
     --layout-duration: 0ms;
 
     /* --------- Background --------- */
-    --bg-waves: url("/images/misc/bg-light.jpg");
+    --bg-waves: url("/images/backgrounds/waves-light.jpg");
     /* --------- Background --------- */
 
     color-scheme: light;

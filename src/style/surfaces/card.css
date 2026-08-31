@@ -4,7 +4,7 @@
 
 @layer style {
   .MuiCard-root {
-    @apply bg-background-paper rounded-3xl px-3 py-3 shadow-xs;
+    @apply bg-background-paper outline-grey-50 rounded-3xl px-3 py-3 shadow-xs outline outline-offset-0;
   }
 
   .MuiCardContent-root {

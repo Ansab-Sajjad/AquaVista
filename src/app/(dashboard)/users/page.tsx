@@ -29,6 +29,7 @@ import {
   TextField,
   ToggleButton,
   ToggleButtonGroup,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { DataGrid, type GridColDef, type GridRowSpacingParams, type GridSortModel } from "@mui/x-data-grid";
@@ -51,6 +52,12 @@ import { apiClient } from "@/lib/api-client";
 import { isAdminUser, normalizeAvatarUrl } from "@/lib/auth";
 
 type Project = { id: string; name: string; municipality: string };
+type UserUsage = {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  totalQuestions: number;
+};
 type User = {
   id: string;
   name: string;
@@ -63,6 +70,7 @@ type User = {
   profileImage?: string | null;
   image?: string | null;
   projects: Project[];
+  usage?: UserUsage;
 };
 type ViewMode = "list" | "grid";
 type RoleFilter = "all" | "admin" | "project-user";
@@ -92,6 +100,13 @@ function getStatusColor(status: string) {
   if (normalizedStatus === "active") return "success";
   if (normalizedStatus === "pending") return "primary";
   return "warning";
+}
+
+function formatTokens(value?: number) {
+  if (!value) return "0";
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+  return String(value);
 }
 
 export default function UsersPage() {
@@ -260,6 +275,36 @@ export default function UsersPage() {
               </Typography>
             )}
           </Box>
+        );
+      },
+    },
+    {
+      field: "usage",
+      headerName: "Tokens used",
+      minWidth: 150,
+      flex: 1,
+      sortable: true,
+      filterable: false,
+      sortComparator: (a, b) => (a?.totalTokens ?? 0) - (b?.totalTokens ?? 0),
+      renderCell: (params) => {
+        const usage = params.row.usage as UserUsage | undefined;
+        const total = usage?.totalTokens ?? 0;
+        return (
+          <Tooltip
+            title={
+              total > 0
+                ? `Input: ${formatTokens(usage?.totalInputTokens)} · Output: ${formatTokens(usage?.totalOutputTokens)} · Questions: ${usage?.totalQuestions ?? 0}`
+                : "No usage yet"
+            }
+            arrow
+          >
+            <Box className="flex flex-col py-2">
+              <Typography className="font-semibold">{formatTokens(total)}</Typography>
+              <Typography variant="body2" className="text-text-secondary">
+                {usage?.totalQuestions ?? 0} questions
+              </Typography>
+            </Box>
+          </Tooltip>
         );
       },
     },
@@ -548,6 +593,25 @@ export default function UsersPage() {
                             No projects
                           </Typography>
                         )}
+                      </Box>
+
+                      <Box className="flex items-center gap-4">
+                        <Box className="flex flex-col">
+                          <Typography variant="body2" className="text-text-secondary">
+                            Tokens used
+                          </Typography>
+                          <Typography className="font-semibold">
+                            {formatTokens(user.usage?.totalTokens)}
+                          </Typography>
+                        </Box>
+                        <Box className="flex flex-col">
+                          <Typography variant="body2" className="text-text-secondary">
+                            Questions
+                          </Typography>
+                          <Typography className="font-semibold">
+                            {user.usage?.totalQuestions ?? 0}
+                          </Typography>
+                        </Box>
                       </Box>
 
                       <Box className="mt-auto flex justify-end">
